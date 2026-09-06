@@ -5,6 +5,7 @@ import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../models/trip_model.dart';
 import 'history_map_screen.dart';
+
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({Key? key}) : super(key: key);
 
@@ -36,6 +37,12 @@ class HistoryScreenState extends State<HistoryScreen> {
       final user = _auth.getCurrentUser();
       if (user != null) {
         final trips = await _api.getTrips(user.uid);
+        trips.sort((a, b) {
+          if (a.startTime == null && b.startTime == null) return 0;
+          if (a.startTime == null) return 1;
+          if (b.startTime == null) return -1;
+          return b.startTime!.compareTo(a.startTime!);
+        });
         setState(() {
           _allTrips = trips;
           _filteredTrips = trips;
@@ -58,13 +65,19 @@ class HistoryScreenState extends State<HistoryScreen> {
       }
 
       DateTime start = DateTime(
-        _startDate!.year, _startDate!.month, _startDate!.day,
-        _startTime?.hour ?? 0, _startTime?.minute ?? 0,
+        _startDate!.year,
+        _startDate!.month,
+        _startDate!.day,
+        _startTime?.hour ?? 0,
+        _startTime?.minute ?? 0,
       );
 
       DateTime end = DateTime(
-        _endDate!.year, _endDate!.month, _endDate!.day,
-        _endTime?.hour ?? 23, _endTime?.minute ?? 59,
+        _endDate!.year,
+        _endDate!.month,
+        _endDate!.day,
+        _endTime?.hour ?? 23,
+        _endTime?.minute ?? 59,
       );
 
       _filteredTrips = _allTrips.where((trip) {
@@ -80,7 +93,9 @@ class HistoryScreenState extends State<HistoryScreen> {
   }
 
   Future<void> _pickDateTime(bool isStart) async {
-    final initialDate = isStart ? (_startDate ?? DateTime.now()) : (_endDate ?? DateTime.now());
+    final initialDate = isStart
+        ? (_startDate ?? DateTime.now())
+        : (_endDate ?? DateTime.now());
     final pickedDate = await showDatePicker(
       context: context,
       initialDate: initialDate,
@@ -102,8 +117,10 @@ class HistoryScreenState extends State<HistoryScreen> {
     if (pickedDate == null) return;
 
     if (!mounted) return;
-    
-    final initialTime = isStart ? (_startTime ?? TimeOfDay.now()) : (_endTime ?? TimeOfDay.now());
+
+    final initialTime = isStart
+        ? (_startTime ?? TimeOfDay.now())
+        : (_endTime ?? TimeOfDay.now());
     final pickedTime = await showTimePicker(
       context: context,
       initialTime: initialTime,
@@ -138,7 +155,9 @@ class HistoryScreenState extends State<HistoryScreen> {
     if (date == null || time == null) return 'เลือกเวลา';
     final h = time.hour.toString().padLeft(2, '0');
     final m = time.minute.toString().padLeft(2, '0');
-    final y = date.year.toString().length >= 4 ? date.year.toString().substring(2) : date.year.toString();
+    final y = date.year.toString().length >= 4
+        ? date.year.toString().substring(2)
+        : date.year.toString();
     return '${date.day}/${date.month}/$y $h:$m';
   }
 
@@ -149,9 +168,13 @@ class HistoryScreenState extends State<HistoryScreen> {
         title: const Text('ประวัติการเดินทาง'),
         actions: [
           IconButton(
-            icon: const FaIcon(FontAwesomeIcons.filter, size: 20, color: AppColors.textLight),
+            icon: const FaIcon(
+              FontAwesomeIcons.filter,
+              size: 20,
+              color: AppColors.textLight,
+            ),
             onPressed: () {},
-          )
+          ),
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1.0),
@@ -164,77 +187,117 @@ class HistoryScreenState extends State<HistoryScreen> {
           children: [
             // Date Range Picker Section
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 16.0,
+              ),
               decoration: const BoxDecoration(
                 color: Colors.white,
-                border: Border(bottom: BorderSide(color: AppColors.borderLight)),
+                border: Border(
+                  bottom: BorderSide(color: AppColors.borderLight),
+                ),
               ),
               child: Row(
                 children: [
                   Expanded(
-                    child: _buildDateTimePickerBox('เริ่มต้น', _startDate, _startTime, () => _pickDateTime(true)),
+                    child: _buildDateTimePickerBox(
+                      'เริ่มต้น',
+                      _startDate,
+                      _startTime,
+                      () => _pickDateTime(true),
+                    ),
                   ),
                   const SizedBox(width: 8),
-                  const FaIcon(FontAwesomeIcons.arrowRightLong, color: AppColors.textLight, size: 16),
+                  const FaIcon(
+                    FontAwesomeIcons.arrowRightLong,
+                    color: AppColors.textLight,
+                    size: 16,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: _buildDateTimePickerBox('สิ้นสุด', _endDate, _endTime, () => _pickDateTime(false)),
+                    child: _buildDateTimePickerBox(
+                      'สิ้นสุด',
+                      _endDate,
+                      _endTime,
+                      () => _pickDateTime(false),
+                    ),
                   ),
                 ],
               ),
             ),
-            
+
             // List Section
             Expanded(
               child: _isLoading
-                  ? const Center(child: CircularProgressIndicator(color: AppColors.primaryGreen))
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primaryGreen,
+                      ),
+                    )
                   : _filteredTrips.isEmpty
-                      ? ListView(
-                          padding: const EdgeInsets.all(16.0),
-                          children: const [
-                            SizedBox(height: 32),
-                            Center(
-                              child: Text(
-                                'ยังไม่มีประวัติการเดินทาง',
-                                style: TextStyle(color: AppColors.textLight, fontSize: 14),
+                  ? ListView(
+                      padding: const EdgeInsets.all(16.0),
+                      children: const [
+                        SizedBox(height: 32),
+                        Center(
+                          child: Text(
+                            'ยังไม่มีประวัติการเดินทาง',
+                            style: TextStyle(
+                              color: AppColors.textLight,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(16.0),
+                      itemCount: _filteredTrips.length,
+                      itemBuilder: (context, index) {
+                        final trip = _filteredTrips[index];
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          color: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            side: const BorderSide(
+                              color: AppColors.borderLight,
+                            ),
+                          ),
+                          child: ListTile(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      HistoryMapScreen(trip: trip),
+                                ),
+                              );
+                            },
+                            leading: const CircleAvatar(
+                              backgroundColor: AppColors.bgLight,
+                              child: FaIcon(
+                                FontAwesomeIcons.truck,
+                                color: AppColors.primaryGreen,
+                                size: 18,
                               ),
                             ),
-                          ],
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.all(16.0),
-                          itemCount: _filteredTrips.length,
-                          itemBuilder: (context, index) {
-                            final trip = _filteredTrips[index];
-                            return Card(
-                              margin: const EdgeInsets.only(bottom: 12),
-                              color: Colors.white,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                side: const BorderSide(color: AppColors.borderLight),
+                            title: Text(
+                              'Trip: ${trip.tripId ?? '-'}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
                               ),
-                              child: ListTile(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => HistoryMapScreen(trip: trip),
-                                    ),
-                                  );
-                                },
-                                leading: const CircleAvatar(
-                                  backgroundColor: AppColors.bgLight,
-                                  child: FaIcon(FontAwesomeIcons.truck, color: AppColors.primaryGreen, size: 18),
-                                ),
-                                title: Text('Trip: ${trip.tripId ?? '-'}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                                subtitle: Text('ระยะทาง: ${trip.distance?.toStringAsFixed(2) ?? '0.00'} km\nเวลา: ${_formatTripTime(trip.startTime)}'),
-                                trailing: _buildStatusBadge(trip.status),
-                                isThreeLine: true,
-                              ),
-                            );
-                          },
-                        ),
+                            ),
+                            subtitle: Text(
+                              'ระยะทาง: ${trip.distance?.toStringAsFixed(2) ?? '0.00'} km\nเวลา: ${_formatTripTime(trip.startTime)} - ${_formatTripTime(trip.endTime)}',
+                            ),
+                            trailing: _buildStatusBadge(trip.status),
+                            isThreeLine: true,
+                          ),
+                        );
+                      },
+                    ),
             ),
           ],
         ),
@@ -248,7 +311,9 @@ class HistoryScreenState extends State<HistoryScreen> {
       final dt = DateTime.parse(timeString).toLocal();
       final h = dt.hour.toString().padLeft(2, '0');
       final m = dt.minute.toString().padLeft(2, '0');
-      final y = dt.year.toString().length >= 4 ? dt.year.toString().substring(2) : dt.year.toString();
+      final y = dt.year.toString().length >= 4
+          ? dt.year.toString().substring(2)
+          : dt.year.toString();
       return '${dt.day}/${dt.month}/$y $h:$m';
     } catch (e) {
       return timeString;
@@ -256,17 +321,19 @@ class HistoryScreenState extends State<HistoryScreen> {
   }
 
   Widget _buildStatusBadge(String? status) {
-    Color bgColor = AppColors.bgLight;
-    Color textColor = AppColors.textLight;
+    Color bgColor = const Color.fromARGB(255, 207, 246, 208);
+    Color textColor = const Color.fromARGB(255, 6, 66, 0);
     String text = status ?? 'Unknown';
 
-    if (status == 'COMPLETED') {
+    String statusLower = status?.toLowerCase() ?? '';
+
+    if (statusLower == 'completed') {
       bgColor = Colors.green.shade50;
       textColor = AppColors.primaryGreen;
       text = 'สำเร็จ';
-    } else if (status == 'IN_PROGRESS') {
-      bgColor = Colors.blue.shade50;
-      textColor = Colors.blue;
+    } else if (statusLower == 'ongoing' || statusLower == 'in_progress') {
+      bgColor = const Color.fromARGB(255, 244, 255, 201);
+      textColor = const Color.fromARGB(255, 201, 164, 0);
       text = 'กำลังเดินทาง';
     }
 
@@ -278,12 +345,21 @@ class HistoryScreenState extends State<HistoryScreen> {
       ),
       child: Text(
         text,
-        style: TextStyle(color: textColor, fontSize: 12, fontWeight: FontWeight.w600),
+        style: TextStyle(
+          color: textColor,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
 
-  Widget _buildDateTimePickerBox(String label, DateTime? date, TimeOfDay? time, VoidCallback onTap) {
+  Widget _buildDateTimePickerBox(
+    String label,
+    DateTime? date,
+    TimeOfDay? time,
+    VoidCallback onTap,
+  ) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -296,16 +372,26 @@ class HistoryScreenState extends State<HistoryScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: const TextStyle(color: AppColors.textLight, fontSize: 12)),
+            Text(
+              label,
+              style: const TextStyle(color: AppColors.textLight, fontSize: 12),
+            ),
             const SizedBox(height: 4),
             Row(
               children: [
-                const FaIcon(FontAwesomeIcons.calendarDay, size: 14, color: AppColors.primaryGreen),
+                const FaIcon(
+                  FontAwesomeIcons.calendarDay,
+                  size: 14,
+                  color: AppColors.primaryGreen,
+                ),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     _formatDateTime(date, time),
-                    style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 13,
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -316,5 +402,4 @@ class HistoryScreenState extends State<HistoryScreen> {
       ),
     );
   }
-
 }
